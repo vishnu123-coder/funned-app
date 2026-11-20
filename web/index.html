@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Send a confession</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Pacifico&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#000;--ink:#fff;--pink:#ff3d8b;--soft:#ffb3d1;--card:#16060d}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,sans-serif}
+body{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:max(20px,env(safe-area-inset-top)) 20px max(20px,env(safe-area-inset-bottom));
+background:radial-gradient(60% 40% at 100% 0%,#ff3d8b55,transparent),radial-gradient(60% 40% at 0% 100%,#ff3d8b55,transparent),#000}
+main{width:100%;max-width:420px;text-align:center}
+h1{font-family:Pacifico,cursive;font-weight:400;font-size:2.6rem;margin:0 0 4px;text-shadow:0 0 18px #ff3d8b99}
+.handle{color:var(--soft);margin:0 0 22px}
+.box{background:var(--card);border:1.5px solid var(--pink);border-radius:22px;padding:16px;box-shadow:0 0 30px #ff3d8b44}
+.box p{font-family:'Great Vibes',cursive;font-size:1.9rem;margin:0 0 8px}
+textarea{width:100%;height:150px;resize:none;border:0;outline:0;background:transparent;color:var(--ink);font:1.05rem/1.5 system-ui,sans-serif}
+textarea::placeholder{color:#ffffff88}
+button{margin-top:16px;width:100%;padding:15px;border:0;border-radius:999px;background:var(--pink);color:#fff;font:600 1.05rem system-ui,sans-serif;cursor:pointer}
+button:disabled{opacity:.5}
+button:focus-visible,textarea:focus-visible{outline:3px solid var(--soft);outline-offset:2px}
+.safe{margin-top:14px;color:var(--soft);font-size:.9rem}
+.count{text-align:right;color:#ffffff99;font-size:.8rem}
+#done{display:none}
+#done h2{font-family:'Great Vibes',cursive;font-size:3rem;margin:0}
+a.again{color:var(--soft)}
+</style>
+</head>
+<body>
+<main>
+ <section id="form">
+  <h1 id="title">Confession</h1>
+  <p class="handle" id="handle"></p>
+  <div class="box">
+   <p>Say it anonymously</p>
+   <textarea id="msg" maxlength="500" placeholder="Type your confession…" aria-label="Your confession"></textarea>
+   <div class="count"><span id="n">0</span>/500</div>
+  </div>
+  <button id="send" disabled>Send confession</button>
+  <p class="safe">100% anonymous. Nothing about you is saved, so you’re safe.</p>
+ </section>
+ <section id="done">
+  <h2>Sent ♥</h2>
+  <p class="safe">Your confession was delivered. Nobody can see who you are.</p>
+  <p><a class="again" href="">Send another</a></p>
+ </section>
+</main>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+import { getFirestore, doc, getDoc, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+
+// ====== PASTE YOUR FIREBASE WEB CONFIG HERE (same one as src/firebase.js) ======
+const firebaseConfig = {
+  apiKey: "AIzaSyBP-OQQmX-iSRLV3mUhIyClzy1QUQHKWow",
+  authDomain: "ece-confessions.firebaseapp.com",
+  projectId: "ece-confessions",
+  storageBucket: "ece-confessions.firebasestorage.app",
+  messagingSenderId: "281163944207",
+  appId: "1:281163944207:web:b410f0d850d68e0dafae7a"
+};
+// ===============================================================================
+const db = getFirestore(initializeApp(firebaseConfig));
+const slug = (new URLSearchParams(location.search).get("u") || "ece").toLowerCase();
+const $ = id => document.getElementById(id);
+
+getDoc(doc(db, "pages", slug)).then(s => {
+  if (!s.exists()) return;
+  const p = s.data();
+  $("title").textContent = p.title; document.title = p.title;
+  $("handle").textContent = p.insta_handle ? "@" + p.insta_handle : "";
+}).catch(() => {});
+
+$("msg").addEventListener("input", () => { const l = $("msg").value.trim().length; $("n").textContent = $("msg").value.length; $("send").disabled = !l; });
+$("send").addEventListener("click", async () => {
+ $("send").disabled = true; $("send").textContent = "Sending…";
+ try {
+  await addDoc(collection(db, "confessions"), {page_slug: slug, body: $("msg").value.trim(), is_posted: false, is_fav: false, created_at: serverTimestamp()});
+  $("form").style.display = "none"; $("done").style.display = "block";
+ } catch (e) { alert("Couldn’t send. Check your connection and try again."); $("send").disabled = false; $("send").textContent = "Send confession"; }
+});
+</script>
+</body>
+</html>

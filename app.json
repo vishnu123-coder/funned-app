@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "ECE Confession",
+    "slug": "ece-confession",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "icon": "./assets/icon.png",
+    "owner": "codervishnus-team",
+    "extra": {
+      "eas": {
+        "projectId": "b28c343d-e83c-44cb-ac3f-2c53bcb92098"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.ece.confession",
+      "infoPlist": {
+        "LSApplicationQueriesSchemes": ["instagram-stories", "instagram"]
+      }
+    },
+    "android": {
+      "package": "com.ece.confession",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#000000"
+      }
+    },
+    "plugins": ["expo-font"]
+  }
+}

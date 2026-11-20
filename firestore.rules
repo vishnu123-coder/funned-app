@@ -1,0 +1,35 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+
+    function isOwner(slug) {
+      return request.auth != null &&
+        get(/databases/$(db)/documents/pages/$(slug)).data.owner == request.auth.uid;
+    }
+
+    // Page info (title, handle) is public. Pages are created by hand in the Firebase console.
+    match /pages/{slug} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /confessions/{id} {
+      // Anyone can SEND (never read). Only text + the page slug are accepted; nothing about the sender is stored.
+      allow create: if request.resource.data.keys().hasOnly(['page_slug', 'body', 'is_posted', 'is_fav', 'created_at'])
+        && request.resource.data.keys().hasAll(['page_slug', 'body', 'is_posted', 'is_fav', 'created_at'])
+        && request.resource.data.page_slug is string
+        && exists(/databases/$(db)/documents/pages/$(request.resource.data.page_slug))
+        && request.resource.data.body is string
+        && request.resource.data.body.size() >= 1
+        && request.resource.data.body.size() <= 500
+        && request.resource.data.is_posted == false
+        && request.resource.data.is_fav == false
+        && request.resource.data.created_at == request.time;
+      // Only the page owner can read, favourite / mark posted, or delete.
+      allow read: if isOwner(resource.data.page_slug);
+      allow update: if isOwner(resource.data.page_slug)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['is_posted', 'is_fav']);
+      allow delete: if isOwner(resource.data.page_slug);
+    }
+  }
+}

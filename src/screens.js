@@ -79,11 +79,21 @@ export function Inbox({ page, onLogout }) {
   const toStory = async () => {
     setBusy(true);
     try {
-      const uri = await shot.current.capture();
-      try { await Share.shareSingle({ social: Social.InstagramStories, appId: FB_APP_ID, backgroundImage: uri, backgroundBottomColor: '#000000', backgroundTopColor: '#000000' }); }
-      catch (e) { await Share.open({ url: uri, type: 'image/png' }); }
-      patch(sel.id, { is_posted: true });
-    } catch (e) { /* cancelled */ }
+      const raw = await shot.current.capture(); // path of the 1080x1920 card image
+      const uri = /^(file|data|content):/.test(raw) ? raw : 'file://' + raw;
+      let shared = false;
+      try {
+        await Share.shareSingle({ social: Social.InstagramStories, appId: FB_APP_ID, backgroundImage: uri, backgroundBottomColor: '#000000', backgroundTopColor: '#000000' });
+        shared = true;
+      } catch (e1) {
+        // Instagram direct share failed -> open the normal share menu (pick Instagram > Story there)
+        try { await Share.open({ url: uri, type: 'image/png', failOnCancel: false }); shared = true; }
+        catch (e2) { Alert.alert('Share failed', String((e2 && e2.message) || e2) + '\n\nStory error: ' + String((e1 && e1.message) || e1)); }
+      }
+      if (shared) patch(sel.id, { is_posted: true });
+    } catch (e) {
+      Alert.alert('Could not create the story image', String((e && e.message) || e));
+    }
     setBusy(false);
   };
 
@@ -107,7 +117,7 @@ export function Inbox({ page, onLogout }) {
       <Modal visible={!!sel} animationType="slide" onRequestClose={() => setSel(null)}>
         <SafeAreaView style={{ flex: 1, backgroundColor: '#0a0a0a', alignItems: 'center' }}>
           {sel && (<>
-            <ViewShot ref={shot} options={{ format: 'png', quality: 1, result: 'data-uri', width: 1080, height: 1920 }} style={{ marginTop: 8, transform: [{ scale: 0.82 }], marginVertical: -58 }}>
+            <ViewShot ref={shot} options={{ format: 'png', quality: 1, result: 'tmpfile', width: 1080, height: 1920 }} style={{ marginTop: 8, transform: [{ scale: 0.82 }], marginVertical: -58 }}>
               <Card text={sel.body} title={page?.title || 'Confession'} />
             </ViewShot>
             <View style={s.actions}>
